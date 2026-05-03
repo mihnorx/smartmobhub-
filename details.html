@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - SmartMob Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --royal-purple: #6c63ff; --soft-white: #ffffff; --text-dark: #333; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--soft-white); margin: 0; color: var(--text-dark); }
+        .container { max-width: 1200px; margin: 50px auto; padding: 20px; display: flex; gap: 50px; flex-wrap: wrap; }
+        .product-image-container { flex: 1; min-width: 300px; text-align: center; }
+        .main-img { width: 100%; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .product-info { flex: 1; min-width: 300px; }
+        .breadcrumb { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+        .product-title { font-size: 32px; font-weight: 600; margin-bottom: 15px; color: var(--text-dark); }
+        .price-tag { font-size: 24px; color: var(--royal-purple); font-weight: 600; margin-bottom: 20px; }
+        .description { line-height: 1.6; color: #666; margin-bottom: 30px; }
+        .cart-action { display: flex; gap: 15px; align-items: center; margin-bottom: 40px; }
+        .add-to-cart-btn { background: var(--royal-purple); color: white; padding: 15px 40px; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; transition: 0.3s; flex-grow: 1; }
+        .add-to-cart-btn:hover { background: #554bc3; transform: translateY(-2px); }
+        .reviews-container { width: 100%; margin-top: 50px; border-top: 1px solid #eee; padding-top: 40px; }
+        .review-flex { display: flex; gap: 40px; flex-wrap: wrap; }
+        .add-review-box { flex: 1; border: 2px solid var(--royal-purple); padding: 25px; border-radius: 10px; background: #fff; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="product-image-container">
+        <!-- Broken image placeholder fixed by logic -->
+        <img id="productImg" src="" alt="Product Image" class="main-img">
+    </div>
+
+    <div class="product-info">
+        <div class="breadcrumb">Home / Mobile Accessories</div>
+        <h1 id="productTitle" class="product-title">Loading...</h1>
+        <div class="price-tag">Rs <span id="productPrice">0</span></div>
+        <p class="description">
+            High-quality mobile accessory designed for durability and high-energy performance. 
+            Perfectly fits your modern lifestyle.
+        </p>
+        
+        <div class="cart-action">
+            <input type="number" id="qty" value="1" min="1" style="width: 60px; text-align: center; height: 45px; border-radius: 5px; border: 1px solid #ddd;">
+            <button id="cartBtn" class="add-to-cart-btn" onclick="addToCart()">ADD TO CART</button>
+        </div>
+    </div>
+
+    <div class="reviews-container">
+        <h2 id="reviewCount">0 Reviews</h2>
+        <div class="review-flex">
+            <div id="reviewsList" style="flex: 2; min-width: 300px;">
+                <p style="color: #888;">Loading reviews...</p>
+            </div>
+            
+            <div class="add-review-box">
+                <h3 style="margin-top: 0; color: #6c63ff;">Add a review</h3>
+                <input type="text" id="revName" placeholder="Your Name *">
+                <input type="email" id="revEmail" placeholder="Your Email *">
+                <textarea id="revText" rows="5" placeholder="Your Review *"></textarea>
+                <button class="add-to-cart-btn" onclick="submitReview()">SUBMIT REVIEW</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // 1. DYNAMIC CONNECTION
+    const _supabase = supabase.createClient('https://cxyxbwsosroeipdjyuuc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4eXhid3Nvc3JvZWlwZGp5dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MDcxMzQsImV4cCI6MjA5MzE4MzEzNH0.8lI73RmCGGU3jQsiJxnyCMOe1NSaLWqvO3_1FBRZImM');
+
+    // 2. LOAD PRODUCT ON PAGE LOAD
+   window.onload = function() {
+    // 1. Data retrieve karein
+    const productData = localStorage.getItem('selectedProduct');
+    console.log("LocalStorage Data:", productData); // Debugging ke liye
+
+    if (productData) {
+        const product = JSON.parse(productData);
+        
+        // IDs check karein ke aapke HTML mein yahi hain
+        if(document.getElementById('productImg')) document.getElementById('productImg').src = product.image;
+        if(document.getElementById('productTitle')) document.getElementById('productTitle').innerText = product.name;
+        if(document.getElementById('productPrice')) document.getElementById('productPrice').innerText = product.price;
+        
+        console.log("UI Updated with:", product.name);
+    } else {
+        console.error("Product data nahi mila! Home page check karein.");
+        if(document.getElementById('productTitle')) document.getElementById('productTitle').innerText = "Product Not Found";
+    }
+    
+    if (typeof loadReviews === "function") loadReviews();
+};
+
+async function addToCart() {
+    const title = document.getElementById('productTitle').innerText;
+    const priceText = document.getElementById('productPrice').innerText;
+    const qty = document.getElementById('qty').value;
+    const btn = document.getElementById('cartBtn');
+
+    // Price ko number mein convert karein (Clean price)
+    const cleanPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+
+    btn.innerText = "SAVING...";
+    btn.disabled = true;
+
+    try {
+        // 2. Supabase Insert
+        // IMPORTANT: Check karein ke aapki table mein columns 'product_name' aur 'price' hi hain?
+        const { data, error } = await _supabase
+            .from('orders')
+            .insert([{ 
+                product_name: title, 
+                price: cleanPrice, 
+                qty: parseInt(qty),
+                created_at: new Date() 
+            }]);
+
+        if (error) throw error;
+
+        alert("Order save successfully! ✅");
+        btn.innerText = "ADDED ✅";
+
+        // 3. Local Cart update
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        cart.push({ name: title, price: cleanPrice, qty: qty });
+        localStorage.setItem('cart', JSON.stringify(cart));
+
+    } catch (err) {
+        console.error("Database Error:", err);
+        alert("Backend Error: " + err.message);
+        btn.innerText = "ADD TO CART";
+        btn.disabled = false;
+    }
+}
+
+    // 4. REVIEWS FETCH & SUBMIT
+    async function loadReviews() {
+        const { data: reviews } = await _supabase.from('reviews').select('*').order('created_at', { ascending: false });
+        const list = document.getElementById('reviewsList');
+        const count = document.getElementById('reviewCount');
+        
+        if (reviews) {
+            count.innerText = `${reviews.length} reviews for this product`;
+            list.innerHTML = reviews.map(r => `
+                <div style="border-bottom: 1px dashed #eee; padding: 15px 0;">
+                    <strong style="color: #6c63ff;">${r.name}</strong> <small>– ${new Date(r.created_at).toLocaleDateString()}</small>
+                    <p style="margin: 5px 0;">"${r.review_text}"</p>
+                </div>
+            `).join('');
+        }
+    }
+
+    async function submitReview() {
+        const name = document.getElementById('revName').value;
+        const text = document.getElementById('revText').value;
+        const email = document.getElementById('revEmail').value;
+
+        if (!name || !text || !email) { return alert("Please fill all fields!"); }
+
+        const { error } = await _supabase.from('reviews').insert([{ name, review_text: text, email }]);
+        if (!error) { alert("Review posted!"); location.reload(); }
+    }
+</script>
+
+</body>
+</html>
