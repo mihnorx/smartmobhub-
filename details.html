@@ -121,41 +121,39 @@
         loadReviews(); 
     };
 
-    // 3. DATABASE SE REVIEWS FETCH KARNE KA FUNCTION
-    async function loadReviews() {
-        const product = JSON.parse(localStorage.getItem('selectedProduct'));
-        const currentProductName = product ? product.name : "";
+// Database se reviews mangwane wala function
+async function loadReviews() {
+    const product = JSON.parse(localStorage.getItem('selectedProduct'));
+    const currentProductName = product ? product.name : "";
 
-        const { data: reviews, error } = await _supabase
-            .from('reviews')
-            .select('*')
-            .eq('product_name', currentProductName) 
-            .order('created_at', { ascending: false });
+    // Database se data fetch ho raha hai
+    const { data: reviews, error } = await _supabase
+        .from('reviews')
+        .select('*')
+        .eq('product_name', currentProductName) // Sirf is product ke reviews
+        .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error("Error loading reviews:", error);
-            return;
-        }
-
-        const list = document.getElementById('reviewsList');
-        const count = document.getElementById('reviewCount');
-        
-        if (reviews && reviews.length > 0) {
-            count.innerText = `${reviews.length} Reviews`;
-            list.innerHTML = reviews.map(r => `
-                <div style="border-bottom: 1px solid #eee; padding: 15px 0; margin-bottom: 10px;">
-                    <strong style="color: #6c63ff; font-size: 16px;">${r.name || 'Anonymous'}</strong>
-                    <span style="font-size: 12px; color: #888; margin-left: 10px;">
-                        ${new Date(r.created_at).toLocaleDateString()}
-                    </span>
-                    <p style="margin: 8px 0; color: #444; line-height: 1.4;">${r.comment}</p>
-                </div>
-            `).join('');
-        } else {
-            count.innerText = "0 Reviews";
-            list.innerHTML = "<p style='color: #888;'>No reviews yet. Be the first one!</p>";
-        }
+    if (error) {
+        console.error("Error loading reviews:", error);
+        return;
     }
+
+    const list = document.getElementById('reviewsList');
+    const count = document.getElementById('reviewCount');
+    
+    if (reviews && reviews.length > 0) {
+        count.innerText = `${reviews.length} Reviews`;
+        list.innerHTML = reviews.map(r => `
+            <div style="border-bottom: 1px solid #eee; padding: 15px 0; margin-bottom: 10px;">
+                <strong style="color: #6c63ff;">${r.name || 'Anonymous'}</strong>
+                <p style="margin: 5px 0; color: #444;">${r.comment}</p>
+            </div>
+        `).join('');
+    } else {
+        count.innerText = "0 Reviews";
+        list.innerHTML = "<p>Abhi tak koi review nahi hai.</p>";
+    }
+}
 
     // 4. REVIEW SUBMIT KARNE KA FUNCTION
     async function submitReview() {
