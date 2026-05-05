@@ -86,10 +86,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     // 1. DYNAMIC CONNECTION
-    const _supabase = supabase.createClient('https://cxyxbwsosroeipdjyuuc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4eXhid3Nvc3JvZWlwZGp5dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MDcxMzQsImV4cCI6MjA5MzE4MzEzNH0.8lI73RmCGGU3jQsiJxnyCMOe1NSaLWqvO3_1FBRZImM');
+    // 1. DYNAMIC CONNECTION
+const _supabase = supabase.createClient('https://cxyxbwsosroeipdjyuuc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4eXhid3Nvc3JvZWlwZGp5dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MDcxMzQsImV4cCI6MjA5MzE4MzEzNH0.8lI73RmCGGU3jQsiJxnyCMOe1NSaLWqvO3_1FBRZImM');
 
-    // 2. LOAD PRODUCT ON PAGE LOAD
-   window.onload = function() {
+// 2. SINGLE WINDOW ONLOAD (Donon kaam ek sath)
+window.onload = function() {
     const product = JSON.parse(localStorage.getItem('selectedProduct'));
     
     if (product) {
@@ -100,98 +101,35 @@
         const name = product.name.toLowerCase();
         let featuresHTML = "";
 
-        // Smart Feature Recognition
         if (name.includes("charger") || name.includes("adapter")) {
-            featuresHTML = `
-                <p><b> Super Fast Charging:</b> Supports 33W/65W power delivery.</p>
-                <p><b> Heat Protection:</b> Smart chip for battery safety.</p>
-                <p><b> Durable Cable:</b> Reinforced joints to prevent breakage.</p>`;
-        } 
-        else if (name.includes("glass") || name.includes("protector")) {
-            featuresHTML = `
-                <p><b> 9H Hardness:</b> Ultimate scratch & drop protection.</p>
-                <p><b> Privacy Tech:</b> Screen invisible from side angles.</p>
-                <p><b> Smooth Touch:</b> Original screen feel with high sensitivity.</p>`;
+            featuresHTML = `<p><b> Super Fast Charging:</b> Supports 33W/65W power delivery.</p>
+                            <p><b> Heat Protection:</b> Smart chip for battery safety.</p>
+                            <p><b> Durable Cable:</b> Reinforced joints to prevent breakage.</p>`;
+        } else if (name.includes("glass") || name.includes("protector")) {
+            featuresHTML = `<p><b> 9H Hardness:</b> Ultimate scratch & drop protection.</p>
+                            <p><b> Privacy Tech:</b> Screen invisible from side angles.</p>
+                            <p><b> Smooth Touch:</b> Original screen feel with high sensitivity.</p>`;
+        } else {
+            featuresHTML = `<p><b> Premium Build:</b> Export quality material used.</p>
+                            <p><b> Perfect Fit:</b> Guaranteed compatibility for your model.</p>
+                            <p><b> Quality Tested:</b> Verified at Sultan Mobile Center.</p>`;
         }
-        else {
-            featuresHTML = `
-                <p><b> Premium Build:</b> Export quality material used.</p>
-                <p><b> Perfect Fit:</b> Guaranteed compatibility for your model.</p>
-                <p><b> Quality Tested:</b> Verified at Sultan Mobile Center.</p>`;
-        }
-
         document.getElementById('featureList').innerHTML = featuresHTML;
-
-        // Agar aapne reviews ka section banaya hai toh usse yahan update kar sakte hain
-        const reviewBox = document.getElementById('reviewContent');
-        if(reviewBox) {
-            reviewBox.innerHTML = "⭐⭐⭐⭐⭐ 'Excellent quality, highly recommended!' - Customer from Lahore";
-        }
     }
-};
 
-async function addToCart() {
-    const title = document.getElementById('productTitle').innerText;
-    const priceText = document.getElementById('productPrice').innerText;
-    const qty = document.getElementById('qty').value;
-    const btn = document.getElementById('cartBtn');
-
-    // Price ko number mein convert karein (Clean price)
-    const cleanPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-
-    btn.innerText = "SAVING...";
-    btn.disabled = true;
-
-    try {
-        // 2. Supabase Insert
-        // IMPORTANT: Check karein ke aapki table mein columns 'product_name' aur 'price' hi hain?
-        const { data, error } = await _supabase
-            .from('orders')
-            .insert([{ 
-                product_name: title, 
-                price: cleanPrice, 
-                qty: parseInt(qty),
-                created_at: new Date() 
-            }]);
-
-        if (error) throw error;
-
-        alert("Order save successfully! ✅");
-        btn.innerText = "ADDED ✅";
-
-        // 3. Local Cart update
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        cart.push({ name: title, price: cleanPrice, qty: qty });
-        localStorage.setItem('cart', JSON.stringify(cart));
-
-    } catch (err) {
-        console.error("Database Error:", err);
-        alert("Backend Error: " + err.message);
-        btn.innerText = "ADD TO CART";
-        btn.disabled = false;
-    }
-}
-
-// 1. Page load hote hi reviews fetch karein
-// 1. Page load hote hi reviews fetch karne ke liye
-window.onload = function() {
-    // Purana product loading code yahan rahega...
-    const product = JSON.parse(localStorage.getItem('selectedProduct'));
-    
-    // Reviews load karne wala function call karein
+    // Reviews load karne wala function call
     loadReviews(); 
 };
 
-// 2. Database se reviews utha kar screen par dikhane ka function
+// 3. DATABASE SE REVIEWS SHOW KARNE KA FUNCTION
 async function loadReviews() {
     const product = JSON.parse(localStorage.getItem('selectedProduct'));
     const currentProductName = product ? product.name : "";
 
-    // Database se data mangwayein
     const { data: reviews, error } = await _supabase
         .from('reviews')
         .select('*')
-        .eq('product_name', currentProductName) // Sirf is product ke reviews dikhayein
+        .eq('product_name', currentProductName) 
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -218,18 +156,18 @@ async function loadReviews() {
         list.innerHTML = "<p style='color: #888;'>No reviews yet. Be the first one!</p>";
     }
 }
-// 3. Review Submit karne ka function
+
+// 4. REVIEW SUBMIT KARNE KA FUNCTION
 async function submitReview() {
     const name = document.getElementById('revName').value;
     const email = document.getElementById('revEmail').value;
-    const comment = document.getElementById('revText').value; // Input ID 'revText' hai
+    const comment = document.getElementById('revText').value; 
     const product = JSON.parse(localStorage.getItem('selectedProduct'));
 
     if (!name || !comment) { 
         return alert("Please fill Name and Review fields!"); 
     }
 
-    // Yahan columns ke naam wahi hain jo aapki image mein hain
     const { error } = await _supabase
         .from('reviews')
         .insert([{ 
@@ -237,7 +175,7 @@ async function submitReview() {
             email: email,
             comment: comment, 
             product_name: product ? product.name : "Unknown",
-            rating: 5 // Default rating kyunke aapke paas star selection nahi hai
+            rating: 5 
         }]);
 
     if (error) {
@@ -245,7 +183,42 @@ async function submitReview() {
         alert("Failed to save: " + error.message);
     } else {
         alert("Review saved successfully! ✅");
-        location.reload();
+        location.reload(); // Refresh to show new review
+    }
+}
+
+// 5. ADD TO CART FUNCTION
+async function addToCart() {
+    const title = document.getElementById('productTitle').innerText;
+    const priceText = document.getElementById('productPrice').innerText;
+    const qty = document.getElementById('qty').value;
+    const btn = document.getElementById('cartBtn');
+    const cleanPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+
+    btn.innerText = "SAVING...";
+    btn.disabled = true;
+
+    try {
+        const { error } = await _supabase
+            .from('orders')
+            .insert([{ 
+                product_name: title, 
+                price: cleanPrice, 
+                qty: parseInt(qty),
+                created_at: new Date() 
+            }]);
+
+        if (error) throw error;
+        alert("Order save successfully! ✅");
+        btn.innerText = "ADDED ✅";
+
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        cart.push({ name: title, price: cleanPrice, qty: qty });
+        localStorage.setItem('cart', JSON.stringify(cart));
+    } catch (err) {
+        alert("Backend Error: " + err.message);
+        btn.innerText = "ADD TO CART";
+        btn.disabled = false;
     }
 }
 </script>
