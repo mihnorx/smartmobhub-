@@ -85,142 +85,142 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    // 1. DYNAMIC CONNECTION
-    // 1. DYNAMIC CONNECTION
-const _supabase = supabase.createClient('https://cxyxbwsosroeipdjyuuc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4eXhid3Nvc3JvZWlwZGp5dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MDcxMzQsImV4cCI6MjA5MzE4MzEzNH0.8lI73RmCGGU3jQsiJxnyCMOe1NSaLWqvO3_1FBRZImM');
+    // 1. DYNAMIC CONNECTION (Aapki Key ke sath)
+    const _supabase = supabase.createClient('https://cxyxbwsosroeipdjyuuc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4eXhid3Nvc3JvZWlwZGp5dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MDcxMzQsImV4cCI6MjA5MzE4MzEzNH0.8lI73RmCGGU3jQsiJxnyCMOe1NSaLWqvO3_1FBRZImM');
 
-// 2. SINGLE WINDOW ONLOAD (Donon kaam ek sath)
-window.onload = function() {
-    const product = JSON.parse(localStorage.getItem('selectedProduct'));
-    
-    if (product) {
-        document.getElementById('productImg').src = product.image;
-        document.getElementById('productTitle').innerText = product.name;
-        document.getElementById('productPrice').innerText = product.price;
+    // 2. SINGLE WINDOW ONLOAD
+    window.onload = function() {
+        const product = JSON.parse(localStorage.getItem('selectedProduct'));
+        
+        if (product) {
+            // Product Image aur Titles set karna
+            document.getElementById('productImg').src = product.image;
+            document.getElementById('productTitle').innerText = product.name;
+            document.getElementById('productPrice').innerText = product.price;
 
-        const name = product.name.toLowerCase();
-        let featuresHTML = "";
-
-        if (name.includes("charger") || name.includes("adapter")) {
-            featuresHTML = `<p><b> Super Fast Charging:</b> Supports 33W/65W power delivery.</p>
-                            <p><b> Heat Protection:</b> Smart chip for battery safety.</p>
-                            <p><b> Durable Cable:</b> Reinforced joints to prevent breakage.</p>`;
-        } else if (name.includes("glass") || name.includes("protector")) {
-            featuresHTML = `<p><b> 9H Hardness:</b> Ultimate scratch & drop protection.</p>
-                            <p><b> Privacy Tech:</b> Screen invisible from side angles.</p>
-                            <p><b> Smooth Touch:</b> Original screen feel with high sensitivity.</p>`;
-        } else {
-            featuresHTML = `<p><b> Premium Build:</b> Export quality material used.</p>
-                            <p><b> Perfect Fit:</b> Guaranteed compatibility for your model.</p>
-                            <p><b> Quality Tested:</b> Verified at Sultan Mobile Center.</p>`;
+            // Smart Feature Recognition Logic
+            const name = product.name.toLowerCase();
+            let featuresHTML = "";
+            if (name.includes("charger") || name.includes("adapter")) {
+                featuresHTML = `<p><b> Super Fast Charging:</b> Supports 33W/65W power delivery.</p>
+                                <p><b> Heat Protection:</b> Smart chip for battery safety.</p>
+                                <p><b> Durable Cable:</b> Reinforced joints to prevent breakage.</p>`;
+            } else if (name.includes("glass") || name.includes("protector")) {
+                featuresHTML = `<p><b> 9H Hardness:</b> Ultimate scratch & drop protection.</p>
+                                <p><b> Privacy Tech:</b> Screen invisible from side angles.</p>
+                                <p><b> Smooth Touch:</b> Original screen feel with high sensitivity.</p>`;
+            } else {
+                featuresHTML = `<p><b> Premium Build:</b> Export quality material used.</p>
+                                <p><b> Perfect Fit:</b> Guaranteed compatibility for your model.</p>
+                                <p><b> Quality Tested:</b> Verified at Sultan Mobile Center.</p>`;
+            }
+            document.getElementById('featureList').innerHTML = featuresHTML;
         }
-        document.getElementById('featureList').innerHTML = featuresHTML;
+
+        // REVIEWS FETCH KARNA (Page load hote hi reviews load honge)
+        loadReviews(); 
+    };
+
+    // 3. DATABASE SE REVIEWS FETCH KARNE KA FUNCTION
+    async function loadReviews() {
+        const product = JSON.parse(localStorage.getItem('selectedProduct'));
+        const currentProductName = product ? product.name : "";
+
+        const { data: reviews, error } = await _supabase
+            .from('reviews')
+            .select('*')
+            .eq('product_name', currentProductName) 
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error loading reviews:", error);
+            return;
+        }
+
+        const list = document.getElementById('reviewsList');
+        const count = document.getElementById('reviewCount');
+        
+        if (reviews && reviews.length > 0) {
+            count.innerText = `${reviews.length} Reviews`;
+            list.innerHTML = reviews.map(r => `
+                <div style="border-bottom: 1px solid #eee; padding: 15px 0; margin-bottom: 10px;">
+                    <strong style="color: #6c63ff; font-size: 16px;">${r.name || 'Anonymous'}</strong>
+                    <span style="font-size: 12px; color: #888; margin-left: 10px;">
+                        ${new Date(r.created_at).toLocaleDateString()}
+                    </span>
+                    <p style="margin: 8px 0; color: #444; line-height: 1.4;">${r.comment}</p>
+                </div>
+            `).join('');
+        } else {
+            count.innerText = "0 Reviews";
+            list.innerHTML = "<p style='color: #888;'>No reviews yet. Be the first one!</p>";
+        }
     }
 
-    // Reviews load karne wala function call
-    loadReviews(); 
-};
+    // 4. REVIEW SUBMIT KARNE KA FUNCTION
+    async function submitReview() {
+        const name = document.getElementById('revName').value;
+        const email = document.getElementById('revEmail').value;
+        const comment = document.getElementById('revText').value; 
+        const product = JSON.parse(localStorage.getItem('selectedProduct'));
 
-// 3. DATABASE SE REVIEWS SHOW KARNE KA FUNCTION
-async function loadReviews() {
-    const product = JSON.parse(localStorage.getItem('selectedProduct'));
-    const currentProductName = product ? product.name : "";
+        if (!name || !comment) { 
+            return alert("Please fill Name and Review fields!"); 
+        }
 
-    const { data: reviews, error } = await _supabase
-        .from('reviews')
-        .select('*')
-        .eq('product_name', currentProductName) 
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error("Error loading reviews:", error);
-        return;
-    }
-
-    const list = document.getElementById('reviewsList');
-    const count = document.getElementById('reviewCount');
-    
-    if (reviews && reviews.length > 0) {
-        count.innerText = `${reviews.length} Reviews`;
-        list.innerHTML = reviews.map(r => `
-            <div style="border-bottom: 1px solid #eee; padding: 15px 0; margin-bottom: 10px;">
-                <strong style="color: #6c63ff; font-size: 16px;">${r.name || 'Anonymous'}</strong>
-                <span style="font-size: 12px; color: #888; margin-left: 10px;">
-                    ${new Date(r.created_at).toLocaleDateString()}
-                </span>
-                <p style="margin: 8px 0; color: #444; line-height: 1.4;">${r.comment}</p>
-            </div>
-        `).join('');
-    } else {
-        count.innerText = "0 Reviews";
-        list.innerHTML = "<p style='color: #888;'>No reviews yet. Be the first one!</p>";
-    }
-}
-
-// 4. REVIEW SUBMIT KARNE KA FUNCTION
-async function submitReview() {
-    const name = document.getElementById('revName').value;
-    const email = document.getElementById('revEmail').value;
-    const comment = document.getElementById('revText').value; 
-    const product = JSON.parse(localStorage.getItem('selectedProduct'));
-
-    if (!name || !comment) { 
-        return alert("Please fill Name and Review fields!"); 
-    }
-
-    const { error } = await _supabase
-        .from('reviews')
-        .insert([{ 
-            name: name, 
-            email: email,
-            comment: comment, 
-            product_name: product ? product.name : "Unknown",
-            rating: 5 
-        }]);
-
-    if (error) {
-        console.error("Error:", error);
-        alert("Failed to save: " + error.message);
-    } else {
-        alert("Review saved successfully! ✅");
-        location.reload(); // Refresh to show new review
-    }
-}
-
-// 5. ADD TO CART FUNCTION
-async function addToCart() {
-    const title = document.getElementById('productTitle').innerText;
-    const priceText = document.getElementById('productPrice').innerText;
-    const qty = document.getElementById('qty').value;
-    const btn = document.getElementById('cartBtn');
-    const cleanPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-
-    btn.innerText = "SAVING...";
-    btn.disabled = true;
-
-    try {
         const { error } = await _supabase
-            .from('orders')
+            .from('reviews')
             .insert([{ 
-                product_name: title, 
-                price: cleanPrice, 
-                qty: parseInt(qty),
-                created_at: new Date() 
+                name: name, 
+                email: email,
+                comment: comment, 
+                product_name: product ? product.name : "Unknown",
+                rating: 5 
             }]);
 
-        if (error) throw error;
-        alert("Order save successfully! ✅");
-        btn.innerText = "ADDED ✅";
-
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        cart.push({ name: title, price: cleanPrice, qty: qty });
-        localStorage.setItem('cart', JSON.stringify(cart));
-    } catch (err) {
-        alert("Backend Error: " + err.message);
-        btn.innerText = "ADD TO CART";
-        btn.disabled = false;
+        if (error) {
+            console.error("Error saving review:", error);
+            alert("Failed to save: " + error.message);
+        } else {
+            alert("Review saved successfully! ✅");
+            location.reload(); 
+        }
     }
-}
+
+    // 5. ADD TO CART FUNCTION
+    async function addToCart() {
+        const title = document.getElementById('productTitle').innerText;
+        const priceText = document.getElementById('productPrice').innerText;
+        const qty = document.getElementById('qty').value;
+        const btn = document.getElementById('cartBtn');
+        const cleanPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+
+        btn.innerText = "SAVING...";
+        btn.disabled = true;
+
+        try {
+            const { error } = await _supabase
+                .from('orders')
+                .insert([{ 
+                    product_name: title, 
+                    price: cleanPrice, 
+                    qty: parseInt(qty),
+                    created_at: new Date() 
+                }]);
+
+            if (error) throw error;
+            alert("Order saved successfully! ✅");
+            btn.innerText = "ADDED ✅";
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart.push({ name: title, price: cleanPrice, qty: qty });
+            localStorage.setItem('cart', JSON.stringify(cart));
+        } catch (err) {
+            alert("Backend Error: " + err.message);
+            btn.innerText = "ADD TO CART";
+            btn.disabled = false;
+        }
+    }
 </script>
 
 </body>
